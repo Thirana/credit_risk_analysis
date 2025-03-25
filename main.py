@@ -109,6 +109,38 @@ with row2[1]:
 with row2[2]:
     avg_dpd_per_delinquency = st.number_input('Average Days Past Due', min_value=0, value=20)
 
+# Monthly Payment Calculator
+interest_rate = st.slider('Annual Interest Rate (%)', min_value=5.0, max_value=25.0, value=12.0, step=0.5)
+if loan_tenure_months > 0 and loan_amount > 0:
+    # Convert annual interest rate to monthly rate
+    monthly_rate = interest_rate / (12 * 100)
+    # Calculate monthly payment (EMI)
+    if monthly_rate > 0:
+        emi = loan_amount * monthly_rate * (1 + monthly_rate)**loan_tenure_months / ((1 + monthly_rate)**loan_tenure_months - 1)
+    else:
+        emi = loan_amount / loan_tenure_months
+    
+    # Calculate what percentage of income this represents
+    income_percentage = (emi * 12 / income) * 100 if income > 0 else 0
+    
+    # Display the EMI and percentage of income
+    st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown(f"""
+            <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 5px;'>
+                <p style='margin:0; color: #666;'>Estimated Monthly Payment (EMI)</p>
+                <h3 style='margin:0; color: #2c3e50;'>LKR {emi:,.2f}</h3>
+            </div>
+        """, unsafe_allow_html=True)
+    with col2:
+        st.markdown(f"""
+            <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 5px;'>
+                <p style='margin:0; color: #666;'>Percentage of Yearly Income</p>
+                <h3 style='margin:0; color: {"#ff4444" if income_percentage > 40 else "#00aa00"};'>{income_percentage:.2f}%</h3>
+            </div>
+        """, unsafe_allow_html=True)
+
 st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
 st.markdown("<h4>Credit Metrics</h4>", unsafe_allow_html=True)
 row3 = st.columns(3)
@@ -250,6 +282,85 @@ if st.button('Calculate Risk Assessment'):
             """,
             unsafe_allow_html=True
         )
+    
+    st.markdown("---")
+    
+    # Risk Improvement Suggestions
+    st.subheader("Risk Improvement Suggestions")
+    
+    # Create suggestions based on the input values
+    suggestions = []
+    
+    # Check loan to income ratio
+    if loan_to_income_ratio > 2.0:
+        suggestions.append("""
+            <div style='margin-bottom: 0.5rem;'>
+                <span style='color: #ff4444;'>●</span> <strong>High Loan-to-Income Ratio:</strong> Your loan amount is {:.1f}x your yearly income. 
+                Consider reducing your loan amount or increasing your income before applying.
+            </div>
+        """.format(loan_to_income_ratio))
+    
+    # Check credit utilization
+    if credit_utilization_ratio > 50:
+        suggestions.append("""
+            <div style='margin-bottom: 0.5rem;'>
+                <span style='color: #ff4444;'>●</span> <strong>High Credit Utilization:</strong> Your credit utilization ratio of {}% is above the recommended level. 
+                Try to reduce this to below 30% to improve your credit score.
+            </div>
+        """.format(credit_utilization_ratio))
+    
+    # Check delinquency ratio
+    if delinquency_ratio > 20:
+        suggestions.append("""
+            <div style='margin-bottom: 0.5rem;'>
+                <span style='color: #ff4444;'>●</span> <strong>Elevated Delinquency Ratio:</strong> Your delinquency ratio of {}% suggests a history of late payments.
+                Focus on making timely payments for at least 6-12 months to improve this metric.
+            </div>
+        """.format(delinquency_ratio))
+    
+    # Check average DPD
+    if avg_dpd_per_delinquency > 15:
+        suggestions.append("""
+            <div style='margin-bottom: 0.5rem;'>
+                <span style='color: #ff4444;'>●</span> <strong>High Days Past Due:</strong> Your average DPD of {} days indicates significant payment delays.
+                Setting up automatic payments could help ensure you pay on time.
+            </div>
+        """.format(avg_dpd_per_delinquency))
+    
+    # Check number of open accounts
+    if num_open_accounts > 3:
+        suggestions.append("""
+            <div style='margin-bottom: 0.5rem;'>
+                <span style='color: #ff4444;'>●</span> <strong>Multiple Open Accounts:</strong> Having {} open loan accounts may be seen as a risk.
+                Consider paying off some smaller loans before applying for new credit.
+            </div>
+        """.format(num_open_accounts))
+    
+    # EMI percentage of income
+    if 'income_percentage' in locals() and income_percentage > 40:
+        suggestions.append("""
+            <div style='margin-bottom: 0.5rem;'>
+                <span style='color: #ff4444;'>●</span> <strong>High Debt-to-Income Ratio:</strong> Your monthly loan payment would be {:.2f}% of your monthly income.
+                Financial experts recommend keeping this below 40% to maintain financial health.
+            </div>
+        """.format(income_percentage))
+        
+    # Display suggestions
+    if suggestions:
+        st.markdown("""
+            <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 5px; margin-bottom: 1rem;'>
+                The following suggestions may help improve your credit risk profile:
+            </div>
+        """, unsafe_allow_html=True)
+        
+        for suggestion in suggestions:
+            st.markdown(suggestion, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+            <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 5px; margin-bottom: 1rem;'>
+                <span style='color: #00aa00;'>✓</span> Your credit profile looks good! Continue maintaining your current financial habits.
+            </div>
+        """, unsafe_allow_html=True)
     
     st.markdown("---")
     
