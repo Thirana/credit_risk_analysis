@@ -6,6 +6,16 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import joblib
 
+# Before the app begins, initialize session state for storing prediction results
+if 'has_predicted' not in st.session_state:
+    st.session_state.has_predicted = False
+if 'probability' not in st.session_state:
+    st.session_state.probability = None
+if 'credit_score' not in st.session_state:
+    st.session_state.credit_score = None
+if 'rating' not in st.session_state:
+    st.session_state.rating = None
+
 # Set the page configuration and theme
 st.set_page_config(
     page_title="Credit Risk Analyzing",
@@ -172,6 +182,18 @@ if st.button('Calculate Risk Assessment'):
     probability, credit_score, rating = predict(age, income, loan_amount, loan_tenure_months, avg_dpd_per_delinquency,
                                                 delinquency_ratio, credit_utilization_ratio, num_open_accounts,
                                                 residence_type, loan_purpose, loan_type)
+    
+    # Store results in session state
+    st.session_state.has_predicted = True
+    st.session_state.probability = probability
+    st.session_state.credit_score = credit_score
+    st.session_state.rating = rating
+
+# Display results if prediction has been made
+if st.session_state.has_predicted:
+    probability = st.session_state.probability
+    credit_score = st.session_state.credit_score
+    rating = st.session_state.rating
 
     # Display the results with enhanced styling
     st.markdown("---")
@@ -360,6 +382,137 @@ if st.button('Calculate Risk Assessment'):
             <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 5px; margin-bottom: 1rem;'>
                 <span style='color: #00aa00;'>✓</span> Your credit profile looks good! Continue maintaining your current financial habits.
             </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    
+    # What-If Analysis Section - Now moved outside the button's if block
+    st.subheader("Feature Analysis")
+    st.markdown("""
+        <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 5px; margin-bottom: 1rem;'>
+            Adjust the sliders below to see how changing various factors would affect your credit risk assessment.
+        </div>
+    """, unsafe_allow_html=True)
+    
+    # Create columns for the what-if analysis
+    whatif_col1, whatif_col2 = st.columns(2)
+    
+    with whatif_col1:
+        # Create sliders for key parameters (with proper labels and hiding them)
+        st.markdown("<p style='margin-bottom: 0.3rem;'><strong>Credit Utilization Ratio (%)</strong></p>", unsafe_allow_html=True)
+        whatif_credit_util = st.slider("Credit Utilization Ratio", min_value=0, max_value=100, value=int(credit_utilization_ratio), step=5, key="whatif_credit_util", label_visibility="collapsed")
+        
+        st.markdown("<p style='margin-bottom: 0.3rem; margin-top: 1rem;'><strong>Delinquency Ratio (%)</strong></p>", unsafe_allow_html=True)
+        whatif_delinquency = st.slider("Delinquency Ratio", min_value=0, max_value=100, value=int(delinquency_ratio), step=5, key="whatif_delinquency", label_visibility="collapsed")
+        
+        st.markdown("<p style='margin-bottom: 0.3rem; margin-top: 1rem;'><strong>Average Days Past Due</strong></p>", unsafe_allow_html=True)
+        whatif_avg_dpd = st.slider("Average Days Past Due", min_value=0, max_value=60, value=int(avg_dpd_per_delinquency), step=5, key="whatif_avg_dpd", label_visibility="collapsed")
+    
+    with whatif_col2:
+        st.markdown("<p style='margin-bottom: 0.3rem;'><strong>Loan Amount (LKR)</strong></p>", unsafe_allow_html=True)
+        whatif_loan_amount = st.slider("Loan Amount", min_value=0, max_value=5000000, value=int(loan_amount), step=100000, key="whatif_loan_amount", label_visibility="collapsed")
+        
+        st.markdown("<p style='margin-bottom: 0.3rem; margin-top: 1rem;'><strong>Loan Tenure (months)</strong></p>", unsafe_allow_html=True)
+        whatif_loan_tenure = st.slider("Loan Tenure", min_value=12, max_value=60, value=int(loan_tenure_months), step=6, key="whatif_loan_tenure", label_visibility="collapsed")
+        
+        st.markdown("<p style='margin-bottom: 0.3rem; margin-top: 1rem;'><strong>Number of Open Accounts</strong></p>", unsafe_allow_html=True)
+        whatif_open_accounts = st.slider("Number of Open Accounts", min_value=1, max_value=4, value=int(num_open_accounts), key="whatif_open_accounts", label_visibility="collapsed")
+    
+    # Calculate what-if loan to income ratio
+    whatif_loan_to_income = whatif_loan_amount / income if income > 0 else 0
+    
+    # Calculate what-if prediction
+    whatif_probability, whatif_credit_score, whatif_rating = predict(
+        age, income, whatif_loan_amount, whatif_loan_tenure, whatif_avg_dpd,
+        whatif_delinquency, whatif_credit_util, whatif_open_accounts,
+        residence_type, loan_purpose, loan_type
+    )
+    
+    # Display comparison results
+    st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center;'>Impact on Your Credit Assessment</h4>", unsafe_allow_html=True)
+    
+    # Create two columns for comparison
+    compare_col1, compare_col2 = st.columns(2)
+    
+    with compare_col1:
+        st.markdown("<h5 style='text-align: center;'>Current Assessment</h5>", unsafe_allow_html=True)
+        
+        # Credit Score - Current
+        if credit_score >= 750:
+            cs_color = "#00aa00"  # Green for excellent
+        elif credit_score >= 650:
+            cs_color = "#88aa00"  # Yellow-green for good
+        elif credit_score >= 500:
+            cs_color = "#ffaa00"  # Orange for average
+        else:
+            cs_color = "#ff4444"  # Red for poor
+            
+        # Default Probability - Current
+        dp_color = "#ff4444" if probability > 0.3 else "#00aa00"
+        
+        st.markdown(f"""
+        <div style='display: flex; flex-direction: column; gap: 0.5rem;'>
+            <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 5px; text-align: center;'>
+                <p style='margin:0; color: #666;'>Credit Score</p>
+                <h3 style='margin:0; color: {cs_color};'>{credit_score}</h3>
+            </div>
+            <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 5px; text-align: center;'>
+                <p style='margin:0; color: #666;'>Default Probability</p>
+                <h3 style='margin:0; color: {dp_color};'>{probability:.2%}</h3>
+            </div>
+            <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 5px; text-align: center;'>
+                <p style='margin:0; color: #666;'>Rating</p>
+                <h3 style='margin:0;'>{rating}</h3>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with compare_col2:
+        st.markdown("<h5 style='text-align: center;'>What-If Assessment</h5>", unsafe_allow_html=True)
+        
+        # Credit Score - What-If
+        if whatif_credit_score >= 750:
+            whatif_cs_color = "#00aa00"  # Green for excellent
+        elif whatif_credit_score >= 650:
+            whatif_cs_color = "#88aa00"  # Yellow-green for good
+        elif whatif_credit_score >= 500:
+            whatif_cs_color = "#ffaa00"  # Orange for average
+        else:
+            whatif_cs_color = "#ff4444"  # Red for poor
+            
+        # Default Probability - What-If
+        whatif_dp_color = "#ff4444" if whatif_probability > 0.3 else "#00aa00"
+        
+        # Calculate the difference for arrows
+        cs_diff = whatif_credit_score - credit_score
+        dp_diff = whatif_probability - probability
+        
+        cs_arrow = "↑" if cs_diff > 0 else "↓" if cs_diff < 0 else "→"
+        dp_arrow = "↑" if dp_diff > 0 else "↓" if dp_diff < 0 else "→"
+        
+        cs_arrow_color = "#00aa00" if cs_diff > 0 else "#ff4444" if cs_diff < 0 else "#666666"
+        dp_arrow_color = "#ff4444" if dp_diff > 0 else "#00aa00" if dp_diff < 0 else "#666666"
+        
+        st.markdown(f"""
+        <div style='display: flex; flex-direction: column; gap: 0.5rem;'>
+            <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 5px; text-align: center;'>
+                <p style='margin:0; color: #666;'>Credit Score</p>
+                <h3 style='margin:0; color: {whatif_cs_color};'>
+                    {whatif_credit_score} <span style='color: {cs_arrow_color};'>{cs_arrow} {abs(cs_diff)}</span>
+                </h3>
+            </div>
+            <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 5px; text-align: center;'>
+                <p style='margin:0; color: #666;'>Default Probability</p>
+                <h3 style='margin:0; color: {whatif_dp_color};'>
+                    {whatif_probability:.2%} <span style='color: {dp_arrow_color};'>{dp_arrow} {abs(dp_diff):.2%}</span>
+                </h3>
+            </div>
+            <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 5px; text-align: center;'>
+                <p style='margin:0; color: #666;'>Rating</p>
+                <h3 style='margin:0;'>{whatif_rating}</h3>
+            </div>
+        </div>
         """, unsafe_allow_html=True)
     
     st.markdown("---")
