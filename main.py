@@ -6,9 +6,70 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import joblib
 
-# Set the page configuration and title
-st.set_page_config(page_title="Lauki Finance: Credit Risk Modelling", page_icon="📊")
-st.title("Lauki Finance: Credit Risk Modelling")
+# Set the page configuration and theme
+st.set_page_config(
+    page_title="Credit Risk Analyzing",
+    page_icon="📊"
+)
+
+# Custom CSS
+st.markdown("""
+    <style>
+    .main {
+        padding: 1rem;
+    }
+    .stButton>button {
+        width: 100%;
+        background-color: #4CAF50;
+        color: white;
+        padding: 0.5rem;
+        border-radius: 5px;
+        border: none;
+        margin-top: 1rem;
+    }
+    .stButton>button:hover {
+        background-color: #45a049;
+    }
+    div[data-testid="stExpander"] {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        margin-bottom: 1rem;
+    }
+    div.row-widget.stSelectbox > div {
+        background-color: white;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+    }
+    div.row-widget.stNumberInput > div {
+        background-color: white;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+    }
+    h1 {
+        color: #2c3e50;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #eee;
+        margin-bottom: 2rem;
+    }
+    h4 {
+        color: #2c3e50;
+        margin: 1rem 0 0.75rem 0;
+        font-size: 1.1rem;
+    }
+    .section-divider {
+        border-top: 1px solid rgba(0,0,0,0.1);
+        margin: 1.5rem 0;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# App title with icon and description
+st.title("🏦 Credit Risk Analysis")
+st.markdown("""
+    <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 5px; margin-bottom: 2rem;'>
+        Enter the required information below to get a comprehensive risk assessment.
+    </div>
+""", unsafe_allow_html=True)
 
 # Load the training data for KDE plots
 # This assumes your model data contains the training data or access to it
@@ -18,39 +79,50 @@ try:
 except:
     training_data = None
 
-# Create rows of three columns each
+# Create sections for different types of inputs
+st.markdown("<h4>Personal Information</h4>", unsafe_allow_html=True)
 row1 = st.columns(3)
-row2 = st.columns(3)
-row3 = st.columns(3)
-row4 = st.columns(3)
 
-# Assign inputs to the first row with default values
 with row1[0]:
     age = st.number_input('Age', min_value=18, step=1, max_value=100, value=28)
 with row1[1]:
-    income = st.number_input('Income', min_value=0, value=1200000)
+    income = st.number_input('YearlyIncome (LKR)', min_value=0, value=3000000)
 with row1[2]:
-    loan_amount = st.number_input('Loan Amount', min_value=0, value=2560000)
+    loan_amount = st.number_input('Loan Amount (LKR)', min_value=0, value=2000000)
+
+st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
+st.markdown("<h4>Loan Details</h4>", unsafe_allow_html=True)
+row2 = st.columns(3)
 
 # Calculate Loan to Income Ratio and display it
 loan_to_income_ratio = loan_amount / income if income > 0 else 0
 with row2[0]:
-    st.text("Loan to Income Ratio:")
-    st.text(f"{loan_to_income_ratio:.2f}")  # Display as a text field
+    st.markdown(f"""
+        <div style='background-color: #f8f9fa; padding: 1rem; border-radius: 5px;'>
+            <p style='margin:0; color: #666;'>Loan to Income Ratio</p>
+            <h4 style='margin:0; color: #2c3e50;'>{loan_to_income_ratio:.2f}</h4>
+        </div>
+    """, unsafe_allow_html=True)
 
-# Assign inputs to the remaining controls
 with row2[1]:
     loan_tenure_months = st.number_input('Loan Tenure (months)', min_value=0, step=1, value=36)
 with row2[2]:
-    avg_dpd_per_delinquency = st.number_input('Avg DPD', min_value=0, value=20)
+    avg_dpd_per_delinquency = st.number_input('Average Days Past Due', min_value=0, value=20)
+
+st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
+st.markdown("<h4>Credit Metrics</h4>", unsafe_allow_html=True)
+row3 = st.columns(3)
 
 with row3[0]:
-    delinquency_ratio = st.number_input('Delinquency Ratio', min_value=0, max_value=100, step=1, value=30)
+    delinquency_ratio = st.number_input('Delinquency Ratio (%)', min_value=0, max_value=100, step=1, value=30)
 with row3[1]:
-    credit_utilization_ratio = st.number_input('Credit Utilization Ratio', min_value=0, max_value=100, step=1, value=30)
+    credit_utilization_ratio = st.number_input('Credit Utilization Ratio (%)', min_value=0, max_value=100, step=1, value=30)
 with row3[2]:
-    num_open_accounts = st.number_input('Open Loan Accounts', min_value=1, max_value=4, step=1, value=2)
+    num_open_accounts = st.number_input('Number of Open Loan Accounts', min_value=1, max_value=4, step=1, value=2)
 
+st.markdown("<div class='section-divider'></div>", unsafe_allow_html=True)
+st.markdown("<h4>Additional Information</h4>", unsafe_allow_html=True)
+row4 = st.columns(3)
 
 with row4[0]:
     residence_type = st.selectbox('Residence Type', ['Owned', 'Rented', 'Mortgage'])
@@ -59,9 +131,11 @@ with row4[1]:
 with row4[2]:
     loan_type = st.selectbox('Loan Type', ['Unsecured', 'Secured'])
 
+# Add some space before the button
+st.markdown("<br>", unsafe_allow_html=True)
 
 # Button to calculate risk
-if st.button('Calculate Risk'):
+if st.button('Calculate Risk Assessment'):
     # Call the predict function from the helper module
     probability, credit_score, rating = predict(age, income, loan_amount, loan_tenure_months, avg_dpd_per_delinquency,
                                                 delinquency_ratio, credit_utilization_ratio, num_open_accounts,
