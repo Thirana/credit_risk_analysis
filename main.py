@@ -67,10 +67,117 @@ if st.button('Calculate Risk'):
                                                 delinquency_ratio, credit_utilization_ratio, num_open_accounts,
                                                 residence_type, loan_purpose, loan_type)
 
-    # Display the results
-    st.write(f"Deafult Probability: {probability:.2%}")
-    st.write(f"Credit Score: {credit_score}")
-    st.write(f"Rating: {rating}")
+    # Display the results with enhanced styling
+    st.markdown("---")
+    st.markdown("### Prediction Results")
+    
+    # Create three columns for the metrics
+    col1, col2, col3 = st.columns(3)
+    
+    # Default Probability with color coding
+    with col1:
+        st.markdown(
+            f"""
+            <div style="
+                padding: 20px;
+                background-color: {'#ff666650' if probability > 0.5 else '#00ff0050'};
+                border-radius: 10px;
+                text-align: center;
+                ">
+                <h3 style="margin: 0;">Default Probability</h3>
+                <h2 style="margin: 10px 0; color: {'#ff4444' if probability > 0.5 else '#00aa00'};">
+                    {probability:.2%}
+                </h2>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    
+    # Credit Score with gauge-like visualization
+    with col2:
+        # Calculate color based on credit score
+        if credit_score >= 750:
+            color = "#00aa00"  # Green for excellent
+            bg_color = "#00ff0050"
+        elif credit_score >= 650:
+            color = "#88aa00"  # Yellow-green for good
+            bg_color = "#ffff0050"
+        elif credit_score >= 500:
+            color = "#ffaa00"  # Orange for average
+            bg_color = "#ffaa0050"
+        else:
+            color = "#ff4444"  # Red for poor
+            bg_color = "#ff666650"
+            
+        st.markdown(
+            f"""
+            <div style="
+                padding: 20px;
+                background-color: {bg_color};
+                border-radius: 10px;
+                text-align: center;
+                ">
+                <h3 style="margin: 0;">Credit Score</h3>
+                <h2 style="margin: 10px 0; color: {color};">
+                    {credit_score}
+                </h2>
+                <div style="
+                    background: #e0e0e0;
+                    border-radius: 10px;
+                    height: 10px;
+                    position: relative;
+                    ">
+                    <div style="
+                        width: {(credit_score - 300) / 6}%;
+                        background: {color};
+                        height: 100%;
+                        border-radius: 10px;
+                        ">
+                    </div>
+                </div>
+                <div style="
+                    display: flex;
+                    justify-content: space-between;
+                    font-size: 12px;
+                    margin-top: 5px;
+                    ">
+                    <span>300</span>
+                    <span>900</span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    
+    # Rating with appropriate color coding
+    with col3:
+        # Determine color based on rating
+        rating_colors = {
+            'Excellent': ('#00aa00', '#00ff0050'),
+            'Good': ('#88aa00', '#ffff0050'),
+            'Average': ('#ffaa00', '#ffaa0050'),
+            'Poor': ('#ff4444', '#ff666650')
+        }
+        color, bg_color = rating_colors.get(rating, ('#000000', '#ffffff50'))
+        
+        st.markdown(
+            f"""
+            <div style="
+                padding: 20px;
+                background-color: {bg_color};
+                border-radius: 10px;
+                text-align: center;
+                ">
+                <h3 style="margin: 0;">Rating</h3>
+                <h2 style="margin: 10px 0; color: {color};">
+                    {rating}
+                </h2>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    
+    st.markdown("---")
     
     # Create influence graphs for numerical inputs
     st.subheader("Feature Distribution Analysis")
@@ -101,23 +208,72 @@ if st.button('Calculate Risk'):
             
             return fig
         else:
-            # If no training data is available, use simulated data to demonstrate
-            # Create simulated distributions based on the current value
+            # If no training data is available, use simulated data that's feature-specific
             fig, ax = plt.subplots(figsize=(10, 6))
             
-            # Generate synthetic distributions around the current value
-            # Non-defaulters are centered more on lower values of risk factors
-            x = np.linspace(max(0, current_value * 0.5), current_value * 2, 1000)
-            
-            # Non-defaulter distribution (centered on lower values)
-            y_non_default = np.exp(-0.5 * ((x - current_value * 0.8) / (current_value * 0.3)) ** 2)
-            
-            # Defaulter distribution (centered on higher values)
-            y_default = np.exp(-0.5 * ((x - current_value * 1.5) / (current_value * 0.4)) ** 2)
+            # Different features have different distribution patterns
+            if feature_name == "age" or feature_label == "Age":
+                # Age has a bell curve with significant overlap
+                x = np.linspace(18, 75, 1000)
+                y_non_default = np.exp(-0.5 * ((x - 40) / 10) ** 2)
+                y_default = np.exp(-0.5 * ((x - 35) / 12) ** 2)
+                
+            elif feature_name == "loan_to_income" or feature_label == "Loan to Income Ratio":
+                # Loan to income ratio - defaulters have higher ratios
+                x = np.linspace(0, 5, 1000)
+                y_non_default = np.exp(-2 * ((x - 0.8) / 0.8) ** 2)
+                y_default = np.exp(-1 * ((x - 2.2) / 1.5) ** 2)
+                
+            elif feature_name == "loan_tenure_months" or feature_label == "Loan Tenure (months)":
+                # Loan tenure months - bimodal for defaulters
+                x = np.linspace(0, 60, 1000)
+                y_non_default = np.exp(-0.5 * ((x - 20) / 10) ** 2)
+                y_default = 0.6 * np.exp(-0.5 * ((x - 45) / 10) ** 2) + 0.4 * np.exp(-0.5 * ((x - 25) / 8) ** 2)
+                
+            elif feature_name == "avg_dpd_per_delinquency" or feature_label == "Average DPD":
+                # Average DPD - defaulters have higher values
+                x = np.linspace(0, 30, 1000)
+                y_non_default = np.exp(-2 * ((x - 2) / 4) ** 2)
+                y_default = 0.7 * np.exp(-1 * ((x - 15) / 10) ** 2) + 0.3 * np.exp(-1 * ((x - 5) / 5) ** 2)
+                
+            elif feature_name == "delinquency_ratio" or feature_label == "Delinquency Ratio":
+                # Delinquency ratio - non-defaulters concentrate near 0
+                x = np.linspace(0, 100, 1000)
+                y_non_default = np.exp(-2 * ((x - 5) / 10) ** 2)
+                y_default = np.exp(-0.5 * ((x - 40) / 30) ** 2)
+                
+            elif feature_name == "credit_utilization_ratio" or feature_label == "Credit Utilization Ratio":
+                # Credit utilization ratio - very different distributions
+                x = np.linspace(0, 100, 1000)
+                y_non_default = np.exp(-1 * ((x - 20) / 25) ** 2) 
+                y_default = np.exp(-3 * ((x - 85) / 15) ** 2)
+                
+            elif feature_name == "number_of_open_accounts" or feature_label == "Number of Open Accounts":
+                # Number of open accounts - discrete values
+                x = np.linspace(1, 4, 1000)
+                # Create peaks at 1, 2, 3, 4
+                y_non_default = np.zeros_like(x)
+                y_default = np.zeros_like(x)
+                
+                for i in range(1, 5):
+                    # Non-defaulters have more accounts at lower numbers
+                    non_default_weight = 0.9 - (i-1) * 0.2  # Decreasing weights: 0.9, 0.7, 0.5, 0.3
+                    # Defaulters have more accounts at higher numbers
+                    default_weight = 0.3 + (i-1) * 0.2  # Increasing weights: 0.3, 0.5, 0.7, 0.9
+                    
+                    y_non_default += non_default_weight * np.exp(-10 * (x - i) ** 2)
+                    y_default += default_weight * np.exp(-10 * (x - i) ** 2)
+            else:
+                # Generic case for other features
+                x = np.linspace(max(0, current_value * 0.2), current_value * 3, 1000)
+                y_non_default = np.exp(-1 * ((x - current_value * 0.7) / (current_value * 0.3)) ** 2)
+                y_default = np.exp(-1 * ((x - current_value * 1.8) / (current_value * 0.6)) ** 2)
             
             # Normalize
-            y_non_default = y_non_default / np.sum(y_non_default)
-            y_default = y_default / np.sum(y_default)
+            if np.sum(y_non_default) > 0:
+                y_non_default = y_non_default / np.sum(y_non_default)
+            if np.sum(y_default) > 0:
+                y_default = y_default / np.sum(y_default)
             
             # Plot KDE curves
             plt.fill_between(x, y_non_default, alpha=0.5, color='blue', label='default=0')
